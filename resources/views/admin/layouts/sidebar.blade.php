@@ -5,10 +5,10 @@
             <a href="{{ route('admin.dashboard') }}" class="block py-2 px-4 bg-gray-800 rounded">Dashboard</a>
         </li>
         <li class="mb-2">
-            <a href="#" class="block py-2 px-4 hover:bg-gray-700 rounded">Pesanan</a>
+            <a href="{{ route('orders.index') }}" class="block py-2 px-4 hover:bg-gray-700 rounded">Pesanan</a>
         </li>
         <li class="mb-2">
-            <a href="#" class="block py-2 px-4 hover:bg-gray-700 rounded">Menu</a>
+            <a href="{{ route('menus.index') }}" class="block py-2 px-4 hover:bg-gray-700 rounded">Menu</a>
         </li>
         <li class="mb-2">
             <a href="#" class="block py-2 px-4 hover:bg-gray-700 rounded">Laporan</a>

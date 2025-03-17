@@ -31,7 +31,7 @@
                 </div>
             </div>
             <a href="#" class="px-4 py-2 rounded-md hover:bg-gray-700">Payments</a>
-            <a href="#" class="px-4 py-2 rounded-md hover:bg-gray-700">Menus</a>
+            <a href="{{ route('menus.index') }}" class="px-4 py-2 rounded-md hover:bg-gray-700">Menus</a>
             <a href="#" class="px-4 py-2 rounded-md hover:bg-gray-700">Settings</a>
             <a href="#" class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 mt-auto text-center">Logout</a>
         </nav>

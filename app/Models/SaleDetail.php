@@ -1,19 +1,20 @@
 <?php
 
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class OrderItem extends Model
+class SaleDetail extends Model
 {
     use HasFactory;
-    protected $table = 'order_items';
-    protected $fillable = ['order_id', 'menu_id', 'quantity', 'price'];
+    
+    protected $fillable = ['sale_id', 'menu_id', 'quantity', 'price', 'subtotal'];
 
-    public function order()
+    public function sale()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Sale::class);
     }
 
     public function menu()

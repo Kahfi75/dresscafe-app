@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -8,29 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'customer_name', 'total_price', 'status'];
-    protected $table = 'orders';
-    protected $primaryKey = 'id';
-    public $timestamps = true;
 
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
+    protected $fillable = [
+        'user_id',
+        'customer_name',
+        'total_price',
+        'status',
+        'menu_id', // Pastikan ada kolom menu_id dalam tabel orders
+    ];
 
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
-
-    public function payment()
+    public function menu()
     {
-        return $this->hasOne(Payment::class);
+        return $this->belongsTo(Menu::class, 'menu_id');
     }
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
-    
 }

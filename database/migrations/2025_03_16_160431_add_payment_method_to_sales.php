@@ -9,19 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('order_items', function (Blueprint $table) {
-            //
-        });
-    }
+    public function up()
+{
+    Schema::table('sales', function (Blueprint $table) {
+        $table->string('payment_method')->nullable()->after('total_price');
+    });
+}
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('order_items', function (Blueprint $table) {
+        Schema::table('sales', function (Blueprint $table) {
             //
         });
     }
