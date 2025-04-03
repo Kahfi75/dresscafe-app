@@ -1,31 +1,25 @@
 <?php
-
+// database/migrations/xxxx_xx_xx_create_orders_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateOrdersTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('customer_name');
-            $table->decimal('total_price', 10, 2)->default(0);
-            $table->enum('status', ['pending', 'completed', 'canceled'])->default('pending');
+            $table->decimal('total_price', 15, 2)->default(0); // Total price for the order
+            $table->string('status')->default('Pending'); // Order status
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('orders');
     }
-};
+}

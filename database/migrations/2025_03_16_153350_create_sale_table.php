@@ -9,12 +9,12 @@ return new class extends Migration {
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id'); // Kasir yang melakukan transaksi
+            $table->dateTime('tanggal');
             $table->decimal('total_price', 10, 2);
+            $table->decimal('paid_amount', 10, 2);
+            $table->decimal('change_amount', 10, 2);
+            $table->string('payment_method'); // Tunai, Kartu, Digital
             $table->timestamps();
-
-            // Foreign key ke tabel users
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

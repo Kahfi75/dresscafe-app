@@ -67,12 +67,11 @@
         <div class="mb-3">
             <label class="form-label">Pilih Pelanggan</label>
             <select name="customer_id" class="form-select" required>
-    <option value="">Pilih pelanggan...</option>
-    @foreach($customers as $customer)
-        <option value="{{ $customer->id }}">{{ $customer->name }} - {{ $customer->phone }}</option>
-    @endforeach
-</select>
-
+                <option value="">Pilih pelanggan...</option>
+                @foreach($customers as $customer)
+                    <option value="{{ $customer->id }}">{{ $customer->name }} - {{ $customer->phone }}</option>
+                @endforeach
+            </select>
         </div>
 
         <!-- Pilih Menu -->
@@ -80,13 +79,14 @@
             <label class="form-label">Pilih Menu</label>
             <select id="menuSelect" class="form-select">
                 <option value="">Pilih menu...</option>
-                @foreach($menu as $menu)
-                    <option value="{{ $menu->id }}" data-price="{{ $menu->price }}">
-                        {{ $menu->name }} - Rp {{ number_format($menu->price, 0, ',', '.') }} (Stok: {{ $menu->stock }})
+                @foreach($products as $product)
+                    <option value="{{ $product->id }}" data-price="{{ $product->price }}">
+                        {{ $product->name }} - Rp {{ number_format($product->price, 0, ',', '.') }} (Stok: {{ $product->stock }})
                     </option>
                 @endforeach
             </select>
         </div>
+
         <button type="button" class="btn btn-success mb-3" onclick="addMenuItem()">Tambah ke Daftar</button>
 
         <div class="row fw-bold">
@@ -105,7 +105,15 @@
             <select name="payment_method" class="form-select" required>
                 <option value="cash">Tunai</option>
                 <option value="card">Kartu</option>
+                <option value="digital">Digital</option>
             </select>
+        </div>
+
+        <input type="hidden" name="user_id" value="{{ auth()->user()->id }}">
+
+        <div class="mb-3">
+            <label for="paidAmount" class="form-label">Jumlah yang Dibayar</label>
+            <input type="number" class="form-control" name="paid_amount" id="paidAmount" min="0" required>
         </div>
 
         <button type="submit" class="btn btn-primary">Proses Transaksi</button>

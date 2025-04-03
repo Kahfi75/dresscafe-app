@@ -7,22 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Sale extends Model
 {
+    use HasFactory;
+
+    // Menentukan kolom yang dapat diisi massal
     protected $fillable = [
-        'customer_id', 'user_id', 'total_price', 'payment_method'
+        'user_id',
+        'tanggal',
+        'total_price',
+        'paid_amount',
+        'change_amount',
     ];
 
+    // Relasi ke tabel 'users'
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
-
-    public function details()
-    {
-        return $this->hasMany(SaleDetail::class, 'sale_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

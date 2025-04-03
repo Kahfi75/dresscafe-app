@@ -5,160 +5,120 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleDetail;
-use App\Models\Menu;
+use App\Models\Product;
 use App\Models\Customer;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class SaleController extends Controller
 {
+    /**
+     * Menampilkan daftar penjualan.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
-        $sales = Sale::with('user', 'customer')->latest()->get(); // Fix: 'customer' instead of 'customers'
-        $menu = Menu::all();
+        // Mendapatkan semua data penjualan
+        $sales = Sale::all();
 
-        return view('sales.index', compact('sales', 'menu'));
+        // Mengirim data penjualan ke view
+        return view('sales.index', compact('sales'));
     }
 
+    /**
+     * Menampilkan form untuk membuat transaksi penjualan baru.
+     *
+     * @return \Illuminate\View\View
+     */
     public function create()
     {
-        $menu = Menu::where('stock', '>', 0)->get();
-        $customers = Customer::all();
-        return view('sales.create', compact('menu', 'customers'));
+        // Ambil semua pelanggan dari database
+        $customers = Customer::all(); 
+
+        // Ambil semua produk untuk form transaksi
+        $products = Product::all(); 
+
+        // Kirimkan data produk dan pelanggan ke view
+        return view('sales.create', compact('customers', 'products'));
     }
 
+    /**
+     * Menyimpan transaksi penjualan baru ke database.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
+        // Validasi input dari form
         $request->validate([
+            'user_id' => 'required|exists:users,id',
             'customer_id' => 'required|exists:customers,id',
             'menu_id' => 'required|array',
-            'menu_id.*' => 'exists:menu,id',
+            'menu_id.*' => 'required|exists:products,id',
             'quantity' => 'required|array',
-            'quantity.*' => 'integer|min:1',
-            'payment_method' => 'required|in:cash,card'
+            'quantity.*' => 'required|integer|min:1',
+            'payment_method' => 'required|in:cash,card,digital',
+            'paid_amount' => 'required|numeric|min:0',
         ]);
 
+        // Mulai transaksi untuk memastikan konsistensi data
         DB::beginTransaction();
         try {
+            // Hitung total harga
+            $total_price = 0;
+            foreach ($request->menu_id as $index => $menuId) {
+                $product = Product::findOrFail($menuId);
+                $total_price += $product->price * $request->quantity[$index];
+            }
+
+            // Simpan transaksi penjualan
             $sale = Sale::create([
+                'user_id' => $request->user_id,
                 'customer_id' => $request->customer_id,
-                'user_id' => Auth::id(),
-                'total_price' => 0,
+                'tanggal' => now(),
+                'total_price' => $total_price,
+                'paid_amount' => $request->paid_amount,
+                'change_amount' => $request->paid_amount - $total_price,
                 'payment_method' => $request->payment_method,
             ]);
 
-            $totalPrice = 0;
+            // Simpan detail produk yang dijual
             foreach ($request->menu_id as $index => $menuId) {
-                $menu = Menu::findOrFail($menuId);
-                $quantity = $request->quantity[$index];
-
-                if ($menu->stock < $quantity) {
-                    return back()->withErrors(['error' => 'Stok tidak mencukupi untuk ' . $menu->name]);
-                }
-
-                $subtotal = $menu->price * $quantity;
-
+                $product = Product::findOrFail($menuId);
                 SaleDetail::create([
                     'sale_id' => $sale->id,
-                    'menu_id' => $menuId,
-                    'quantity' => $quantity,
-                    'price' => $menu->price,
-                    'subtotal' => $subtotal,
+                    'product_id' => $menuId,
+                    'quantity' => $request->quantity[$index],
+                    'price' => $product->price,
                 ]);
-
-                // Kurangi stok menu setelah transaksi
-                $menu->decrement('stock', $quantity);
-                $totalPrice += $subtotal;
             }
 
-            $sale->update(['total_price' => $totalPrice]);
-
+            // Commit transaksi jika tidak ada error
             DB::commit();
-            return redirect()->route('sales.index')->with('success', 'Transaksi berhasil!');
+
+            // Redirect ke halaman receipt dengan pesan sukses
+            return redirect()->route('sales.receipt', $sale->id)
+                ->with('success', 'Penjualan berhasil disimpan.');
         } catch (\Exception $e) {
+            // Rollback transaksi jika terjadi error
             DB::rollback();
-            return back()->withErrors(['error' => 'Transaksi gagal: ' . $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-
-    public function edit($id)
-    {
-        $sale = Sale::with('details')->findOrFail($id);
-        $menu = Menu::where('stock', '>', 0)->get();
-        $customers = Customer::all();
-        return view('sales.edit', compact('sale', 'menu', 'customers'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'menu_id' => 'required|array',
-            'menu_id.*' => 'exists:menu,id',
-            'quantity' => 'required|array',
-            'quantity.*' => 'integer|min:1',
-            'payment_method' => 'required|in:cash,card'
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $sale = Sale::findOrFail($id);
-
-            // Pastikan ada detail sebelum dihapus
-            if ($sale->details->count() > 0) {
-                foreach ($sale->details as $detail) {
-                    $menu = Menu::find($detail->menu_id);
-                    if ($menu) {
-                        $menu->increment('stock', $detail->quantity);
-                    }
-                }
-                $sale->details()->delete();
-            }
-
-            $totalPrice = 0;
-            foreach ($request->menu_id as $index => $menuId) {
-                $menu = Menu::findOrFail($menuId);
-                $quantity = $request->quantity[$index];
-
-                if ($menu->stock < $quantity) {
-                    return back()->withErrors(['error' => 'Stock tidak mencukupi untuk ' . $menu->name]);
-                }
-
-                $subtotal = $menu->price * $quantity;
-
-                SaleDetail::create([
-                    'sale_id' => $sale->id,
-                    'menu_id' => $menuId,
-                    'quantity' => $quantity,
-                    'price' => $menu->price,
-                    'subtotal' => $subtotal,
-                ]);
-
-                $menu->decrement('stock', $quantity);
-                $totalPrice += $subtotal;
-            }
-
-            $sale->update([
-                'total_price' => $totalPrice,
-                'payment_method' => $request->payment_method,
-            ]);
-
-            DB::commit();
-            return redirect()->route('sales.index')->with('success', 'Transaksi berhasil diperbarui!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->withErrors(['error' => 'Gagal memperbarui transaksi: ' . $e->getMessage()]);
-        }
-    }
-
+    /**
+     * Menampilkan halaman receipt/struk penjualan.
+     *
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
     public function receipt($id)
     {
-        $sale = Sale::with('details.menu', 'user', 'customer')->findOrFail($id);
+        // Mengambil data transaksi penjualan beserta detailnya
+        $sale = Sale::with('saleDetails.product')->findOrFail($id);
+
+        // Mengirim data penjualan ke view
         return view('sales.receipt', compact('sale'));
-    }
-    public function show($id)
-    {
-        $sale = Sale::with('details.menu', 'customer', 'user')->findOrFail($id);
-        return view('sales.show', compact('sale'));
     }
 }

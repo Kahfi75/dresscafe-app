@@ -1,84 +1,93 @@
 <?php
 
+// app/Http/Controllers/OrderController.php
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Menu;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
-    // Tampilkan daftar pesanan
+    // Menampilkan daftar order
     public function index(Request $request)
     {
-        $query = Order::with('orderItems.menu')->orderBy('created_at', 'desc');
+        $search = $request->input('search');
+        $orders = Order::with('orderItems.menu')
+            ->when($request->status, function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        if ($request->has('status') && in_array($request->status, ['Pending', 'Completed', 'Canceled'])) {
-            $query->where('status', $request->status);
-        }
-
-        $orders = $query->get();
         return view('orders.index', compact('orders'));
     }
 
-    // Tampilkan form tambah pesanan
+    // Menampilkan form untuk membuat order baru
     public function create()
     {
-        $menus = Menu::all(); // Ambil semua menu
+        $menus = Menu::all(); // Mengambil semua menu
         return view('orders.create', compact('menus'));
     }
 
-    // Simpan pesanan baru
+    // Menyimpan order baru ke dalam database
     public function store(Request $request)
     {
+        // Validasi input dari form
         $request->validate([
             'customer_name' => 'required|string|max:255',
-            'menus' => 'required|array', // Menu harus berupa array
-            'menus.*.menu_id' => 'required|exists:menus,id',
-            'menus.*.quantity' => 'required|integer|min:1',
+            'menu' => 'required|array',
+            'menu.*.menu_id' => 'required|exists:menu,id', // Validasi ID menu
+            'menu.*.quantity' => 'required|integer|min:1', // Validasi kuantitas
         ]);
 
+        // Cek apakah pengguna sudah login
         if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'You must be logged in to create an order.');
         }
 
+        // Menghitung total harga
         $total_price = 0;
-        foreach ($request->menus as $menu) {
-            $menuData = Menu::findOrFail($menu['menu_id']);
-            $total_price += $menuData->price * $menu['quantity'];
+        foreach ($request->menu as $menuItem) {
+            $menuData = Menu::findOrFail($menuItem['menu_id']);
+            $total_price += $menuData->price * $menuItem['quantity'];
         }
 
-        // Simpan order utama
+        // Membuat entry order baru
         $order = Order::create([
-            'user_id' => Auth::id(),
+            'user_id' => Auth::id(),  // Menyimpan user_id yang sedang login
             'customer_name' => $request->customer_name,
             'total_price' => $total_price,
-            'status' => 'Pending',
+            'status' => 'Pending',  // Status default
         ]);
 
-        // Simpan detail pesanan (order items)
-        foreach ($request->menus as $menu) {
+        // Menyimpan item-item pesanan
+        foreach ($request->menu as $menuItem) {
+            $menuData = Menu::findOrFail($menuItem['menu_id']);
+            $subtotal = $menuData->price * $menuItem['quantity'];
+
             OrderItem::create([
                 'order_id' => $order->id,
-                'menu_id' => $menu['menu_id'],
-                'quantity' => $menu['quantity'],
-                'subtotal' => Menu::findOrFail($menu['menu_id'])->price * $menu['quantity'],
+                'menu_id' => $menuItem['menu_id'],
+                'quantity' => $menuItem['quantity'],
+                'subtotal' => $subtotal,
             ]);
         }
 
+        // Redirect dengan pesan sukses
         return redirect()->route('orders.index')->with('success', 'Order successfully created!');
     }
 
-    // Tampilkan detail pesanan
+    // Menampilkan detail order
     public function show($id)
     {
         $order = Order::with('orderItems.menu')->findOrFail($id);
         return view('orders.show', compact('order'));
     }
 
-    // Tampilkan form edit pesanan
+    // Menampilkan form untuk edit order
     public function edit($id)
     {
         $order = Order::with('orderItems')->findOrFail($id);
@@ -86,50 +95,54 @@ class OrderController extends Controller
         return view('orders.edit', compact('order', 'menus'));
     }
 
-    // Update pesanan
+    // Memperbarui data order
     public function update(Request $request, $id)
     {
+        // Validasi input dari form
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'status' => 'required|in:Pending,Completed,Canceled',
-            'menus' => 'required|array',
-            'menus.*.menu_id' => 'required|exists:menus,id',
-            'menus.*.quantity' => 'required|integer|min:1',
+            'menu' => 'required|array',
+            'menu.*.menu_id' => 'required|exists:menu,id',
+            'menu.*.quantity' => 'required|integer|min:1',
         ]);
 
+        // Menemukan order berdasarkan ID
         $order = Order::findOrFail($id);
         $order->update([
             'customer_name' => $request->customer_name,
             'status' => $request->status,
         ]);
 
-        // Hapus order_items lama dan buat ulang
+        // Menghapus order items lama dan menambahkan yang baru
         $order->orderItems()->delete();
+
         $total_price = 0;
-        foreach ($request->menus as $menu) {
-            $menuData = Menu::findOrFail($menu['menu_id']);
-            $subtotal = $menuData->price * $menu['quantity'];
+        foreach ($request->menu as $menuItem) {
+            $menuData = Menu::findOrFail($menuItem['menu_id']);
+            $subtotal = $menuData->price * $menuItem['quantity'];
             $total_price += $subtotal;
 
             OrderItem::create([
                 'order_id' => $order->id,
-                'menu_id' => $menu['menu_id'],
-                'quantity' => $menu['quantity'],
+                'menu_id' => $menuItem['menu_id'],
+                'quantity' => $menuItem['quantity'],
                 'subtotal' => $subtotal,
             ]);
         }
 
+        // Memperbarui total harga
         $order->update(['total_price' => $total_price]);
 
         return redirect()->route('orders.index')->with('success', 'Order successfully updated!');
     }
 
-    // Hapus pesanan
+    // Menghapus order
     public function destroy($id)
     {
         $order = Order::findOrFail($id);
-        $order->orderItems()->delete();
-        $order->delete();
+        $order->orderItems()->delete();  // Menghapus item-item order
+        $order->delete();  // Menghapus order
 
         return redirect()->route('orders.index')->with('success', 'Order successfully deleted!');
     }

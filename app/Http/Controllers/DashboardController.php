@@ -2,34 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Sale;
 use Illuminate\Http\Request;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Payment;
-use App\Models\Menu;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    // Menampilkan Dashboard Admin
     public function index()
     {
-        $today = Carbon::today();
+        // Total penjualan bulan ini
+        $totalSales = Sale::whereMonth('tanggal', now()->month)
+                          ->whereYear('tanggal', now()->year) // Ensure the year is also considered
+                          ->sum('total_price');
 
-        // Hitung total order hari ini
-        $totalOrder = Order::whereDate('created_at', $today)->count();
+        // Total order hari ini
+        $totalOrder = Sale::whereDate('tanggal', now()->toDateString())->count();
 
-        // Hitung total pendapatan hari ini dari tabel payments
-        $totalRevenue = Payment::whereDate('created_at', $today)->sum('total');
+        // Total pelanggan (berbeda user_id)
+        $totalCustomers = Sale::distinct('user_id')->count('user_id');
+        
+        // Return the data to the view
+        return view('admin.dashboard', compact('totalSales', 'totalOrder', 'totalCustomers'));
+    }
 
-        // Ambil menu terlaris dari order_items
-        $topMenu = Menu::join('order_items', 'menu.id', '=', 'order_items.menu_id')
-            ->select('menu.name', DB::raw('SUM(order_items.quantity) as total_sold'))
-            ->groupBy('menu.name')
-            ->orderByDesc('total_sold')
-            ->limit(5)
-            ->get();
+    // Mendapatkan data grafik penjualan
+    public function chartData()
+    {
+        // Ambil data grafik per hari
+        $salesData = Sale::selectRaw('DATE(tanggal) as date, count(*) as transactions, sum(total_price) as revenue')
+                         ->groupBy('date')
+                         ->orderBy('date')
+                         ->get();
 
-        return view('dashboard.index', compact('totalOrder', 'totalRevenue', 'topMenu'));
+        // Menyiapkan data untuk grafik
+        $labels = $salesData->pluck('date');
+        $transactions = $salesData->pluck('transactions');
+        $revenue = $salesData->pluck('revenue');
+
+        // Mengembalikan data sebagai JSON
+        return response()->json([
+            'labels' => $labels,
+            'transactions' => $transactions,
+            'revenue' => $revenue,
+        ]);
     }
 }
