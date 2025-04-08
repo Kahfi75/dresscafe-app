@@ -7,61 +7,54 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    // Menampilkan daftar pelanggan
     public function index()
     {
-        $customers = Customer::all();
+        $customers = Customer::latest()->get();
         return view('customers.index', compact('customers'));
     }
 
-    // Menampilkan form untuk menambah pelanggan
     public function create()
     {
         return view('customers.create');
     }
 
-    // Menyimpan data pelanggan baru
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:customers,email',
-            'phone' => 'required|string|max:15',
+            'name'   => 'required|string|max:255',
+            'email'  => 'nullable|email|max:150|unique:customers,email',
+            'phone'  => 'required|string|max:20|unique:customers,phone',
+            'address'=> 'nullable|string',
         ]);
 
         Customer::create($request->all());
 
-        return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil ditambahkan.');
+        return redirect()->route('customers.index')->with('success', 'Customer berhasil ditambahkan.');
     }
 
-    // Menampilkan form untuk mengedit pelanggan
-    public function edit($id)
+    public function edit(Customer $customer)
     {
-        $customer = Customer::findOrFail($id);
         return view('customers.edit', compact('customer'));
     }
 
-    // Mengupdate data pelanggan
-    public function update(Request $request, $id)
+    public function update(Request $request, Customer $customer)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:customers,email,' . $id,
-            'phone' => 'required|string|max:15',
+            'name'   => 'required|string|max:255',
+            'email'  => 'nullable|email|max:150|unique:customers,email,' . $customer->id,
+            'phone'  => 'required|string|max:20|unique:customers,phone,' . $customer->id,
+            'address'=> 'nullable|string',
         ]);
 
-        $customer = Customer::findOrFail($id);
         $customer->update($request->all());
 
-        return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil diperbarui.');
+        return redirect()->route('customers.index')->with('success', 'Customer berhasil diperbarui.');
     }
 
-    // Menghapus pelanggan
-    public function destroy($id)
+    public function destroy(Customer $customer)
     {
-        $customer = Customer::findOrFail($id);
         $customer->delete();
 
-        return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil dihapus.');
+        return redirect()->route('customers.index')->with('success', 'Customer berhasil dihapus.');
     }
 }

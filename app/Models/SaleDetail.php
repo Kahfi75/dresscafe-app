@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +9,13 @@ class SaleDetail extends Model
 {
     use HasFactory;
     
-    protected $fillable = ['sale_id', 'menu_id', 'quantity', 'price', 'subtotal'];
+    protected $fillable = [
+        'sale_id', 
+        'menu_id', 
+        'quantity', 
+        'price', 
+        'subtotal'
+    ];
 
     public function sale()
     {
@@ -19,6 +24,6 @@ class SaleDetail extends Model
 
     public function menu()
     {
-        return $this->belongsTo(Menu::class);
+        return $this->belongsTo(Menu::class, 'menu_id');
     }
 }

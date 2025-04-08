@@ -2,124 +2,102 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Transaksi</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script>
-        function updateTotal() {
-            let total = 0;
-            document.querySelectorAll('.menu-item').forEach((row) => {
-                let price = parseInt(row.querySelector('.price').dataset.price);
-                let qty = parseInt(row.querySelector('.quantity').value) || 0;
-                let subtotal = price * qty;
-                row.querySelector('.subtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
-                total += subtotal;
-            });
-            document.getElementById('totalHarga').textContent = 'Rp ' + total.toLocaleString('id-ID');
-        }
-
-        function addMenuItem() {
-            let menuSelect = document.getElementById('menuSelect');
-            let selectedMenu = menuSelect.options[menuSelect.selectedIndex];
-
-            if (selectedMenu.value === "") return;
-
-            let price = selectedMenu.dataset.price;
-            let menuId = selectedMenu.value;
-            let menuName = selectedMenu.text;
-
-            let row = document.createElement('div');
-            row.classList.add('row', 'menu-item', 'mb-2');
-            row.innerHTML = `
-                <div class="col-4">
-                    <input type="hidden" name="menu_id[]" value="${menuId}">
-                    <span>${menuName}</span>
-                </div>
-                <div class="col-2 price" data-price="${price}">Rp ${parseInt(price).toLocaleString('id-ID')}</div>
-                <div class="col-3">
-                    <input type="number" name="quantity[]" class="form-control quantity" min="1" value="1" oninput="updateTotal()">
-                </div>
-                <div class="col-3 subtotal">Rp ${parseInt(price).toLocaleString('id-ID')}</div>
-            `;
-
-            document.getElementById('menuList').appendChild(row);
-            updateTotal();
-        }
-    </script>
+    <title>Transaksi Penjualan Baru</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+<div class="container mt-5">
+    <h2>Transaksi Penjualan Baru</h2>
 
-<div class="container mt-4">
-    <h2 class="mb-3">Tambah Transaksi</h2>
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <p>{{ $error }}</p>
-            @endforeach
-        </div>
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
     <form action="{{ route('sales.store') }}" method="POST">
         @csrf
 
-        <!-- Pilih Pelanggan -->
+        <!-- Pilih Customer -->
         <div class="mb-3">
-            <label class="form-label">Pilih Pelanggan</label>
-            <select name="customer_id" class="form-select" required>
-                <option value="">Pilih pelanggan...</option>
-                @foreach($customers as $customer)
-                    <option value="{{ $customer->id }}">{{ $customer->name }} - {{ $customer->phone }}</option>
+            <label for="customer_id" class="form-label">Pelanggan</label>
+            <select name="customer_id" id="customer_id" class="form-control" required>
+                <option value="">-- Pilih Pelanggan --</option>
+                @foreach ($customers as $customer)
+                    <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                 @endforeach
             </select>
         </div>
 
-        <!-- Pilih Menu -->
+        <!-- Produk Dinamis -->
+        <div id="produk-list">
+            <div class="row mb-3 produk-item">
+                <div class="col-md-6">
+                    <label class="form-label">Produk</label>
+                    <select name="menu_id[]" class="form-control" required>
+                        <option value="">-- Pilih Produk --</option>
+                        @foreach ($products as $product)
+                            <option value="{{ $product->id }}">
+                                {{ $product->name }} - Rp{{ number_format($product->price, 0, ',', '.') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Jumlah</label>
+                    <input type="number" name="quantity[]" class="form-control" min="1" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger remove-item">Hapus</button>
+                </div>
+            </div>
+        </div>
+
         <div class="mb-3">
-            <label class="form-label">Pilih Menu</label>
-            <select id="menuSelect" class="form-select">
-                <option value="">Pilih menu...</option>
-                @foreach($products as $product)
-                    <option value="{{ $product->id }}" data-price="{{ $product->price }}">
-                        {{ $product->name }} - Rp {{ number_format($product->price, 0, ',', '.') }} (Stok: {{ $product->stock }})
-                    </option>
-                @endforeach
-            </select>
+            <button type="button" id="add-product" class="btn btn-primary">Tambah Produk</button>
         </div>
 
-        <button type="button" class="btn btn-success mb-3" onclick="addMenuItem()">Tambah ke Daftar</button>
-
-        <div class="row fw-bold">
-            <div class="col-4">Menu</div>
-            <div class="col-2">Harga</div>
-            <div class="col-3">Jumlah</div>
-            <div class="col-3">Subtotal</div>
-        </div>
-        <div id="menuList"></div>
-
-        <div class="mt-3 fw-bold">Total Harga: <span id="totalHarga">Rp 0</span></div>
-
-        <!-- Pilih Metode Pembayaran -->
-        <div class="mb-3 mt-3">
-            <label class="form-label">Metode Pembayaran</label>
-            <select name="payment_method" class="form-select" required>
+        <!-- Metode Pembayaran -->
+        <div class="mb-3">
+            <label for="payment_method" class="form-label">Metode Pembayaran</label>
+            <select name="payment_method" id="payment_method" class="form-control" required>
+                <option value="">-- Pilih Metode --</option>
                 <option value="cash">Tunai</option>
                 <option value="card">Kartu</option>
                 <option value="digital">Digital</option>
             </select>
         </div>
 
-        <input type="hidden" name="user_id" value="{{ auth()->user()->id }}">
-
+        <!-- Jumlah Dibayar -->
         <div class="mb-3">
-            <label for="paidAmount" class="form-label">Jumlah yang Dibayar</label>
-            <input type="number" class="form-control" name="paid_amount" id="paidAmount" min="0" required>
+            <label for="paid_amount" class="form-label">Jumlah Dibayar</label>
+            <input type="number" name="paid_amount" id="paid_amount" class="form-control" min="0" required>
         </div>
 
-        <button type="submit" class="btn btn-primary">Proses Transaksi</button>
+        <!-- ID User Login -->
+        <input type="hidden" name="user_id" value="{{ auth()->id() ?? 1 }}">
+
+        <button type="submit" class="btn btn-success">Simpan Transaksi</button>
     </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('add-product').addEventListener('click', function () {
+        const container = document.getElementById('produk-list');
+        const item = document.querySelector('.produk-item');
+        const clone = item.cloneNode(true);
+        clone.querySelector('select').value = '';
+        clone.querySelector('input').value = '';
+        container.appendChild(clone);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('remove-item')) {
+            const items = document.querySelectorAll('.produk-item');
+            if (items.length > 1) {
+                e.target.closest('.produk-item').remove();
+            }
+        }
+    });
+</script>
 </body>
 </html>

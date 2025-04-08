@@ -26,16 +26,16 @@
             <div class="grid grid-cols-2 gap-4">
                 <p><strong>Kode Transaksi:</strong> {{ $sale->code }}</p>
                 <p><strong>Pelanggan:</strong> {{ $sale->customer->name ?? 'Umum' }}</p>
-                <p><strong>Kasir:</strong> {{ $sale->user->name }}</p>
+                <p><strong>Kasir:</strong> {{ $sale->user->name ?? '-' }}</p>
                 <p><strong>Tanggal:</strong> {{ $sale->created_at->format('d-m-Y H:i') }}</p>
                 <p><strong>Metode Pembayaran:</strong> {{ ucfirst($sale->payment_method) }}</p>
                 <p>
                     <strong>Status:</strong>
                     @php
                     $statusInfo = [
-                    'pending' => ['text' => 'Menunggu pembayaran atau konfirmasi.', 'color' => 'bg-yellow-500'],
-                    'completed' => ['text' => 'Transaksi telah selesai.', 'color' => 'bg-green-500'],
-                    'canceled' => ['text' => 'Transaksi dibatalkan.', 'color' => 'bg-red-500']
+                        'pending' => ['text' => 'Menunggu pembayaran atau konfirmasi.', 'color' => 'bg-yellow-500'],
+                        'completed' => ['text' => 'Transaksi telah selesai.', 'color' => 'bg-green-500'],
+                        'canceled' => ['text' => 'Transaksi dibatalkan.', 'color' => 'bg-red-500']
                     ];
                     $status = $sale->status;
                     $statusText = ucfirst($status);
@@ -47,7 +47,6 @@
                     </span>
                     <small class="text-gray-600 block mt-1">{{ $statusDesc }}</small>
                 </p>
-
             </div>
         </div>
 
@@ -64,22 +63,26 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white text-center">
-                    @foreach($sale->details as $detail)
+                    @forelse($sale->saleDetails ?? [] as $detail)
                     <tr class="border-b">
                         <td class="p-3">{{ $loop->iteration }}</td>
-                        <td class="p-3">{{ $detail->menu->name }}</td>
-                        <td class="p-3">Rp {{ number_format($detail->menu->price, 0, ',', '.') }}</td>
+                        <td class="p-3">{{ $detail->menu->name ?? '-' }}</td>
+                        <td class="p-3">Rp {{ number_format($detail->menu->price ?? 0, 0, ',', '.') }}</td>
                         <td class="p-3">{{ $detail->quantity }}</td>
-                        <td class="p-3 text-green-600">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
+                        <td class="p-3 text-green-600">Rp {{ number_format($detail->quantity * ($detail->menu->price ?? 0), 0, ',', '.') }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="5" class="text-center text-gray-500 py-4">Tidak ada item dalam transaksi ini.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
 
         <div class="border p-4 rounded-lg bg-gray-50">
             <h3 class="text-lg font-semibold text-gray-700 mb-3">Total Pembayaran</h3>
-            <p class="text-xl font-bold">Rp {{ number_format($sale->total_price, 0, ',', '.') }}</p>
+            <p class="text-xl font-bold">Rp {{ number_format($sale->total_price ?? 0, 0, ',', '.') }}</p>
         </div>
 
         <div class="mt-5 flex gap-3">
