@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
     {
         User::insert([
             [
-                'name' => 'Admin Qmartz',
+                'name' => 'adam',
                 'email' => 'admin@qmartz.com',
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name' => 'Kasir Qmartz',
+                'name' => 'ymir',
                 'email' => 'kasir@qmartz.com',
                 'password' => Hash::make('kasir123'),
                 'role' => 'kasir',

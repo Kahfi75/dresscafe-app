@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['user_id', 'customer_name', 'total_price', 'status'];
+
+    protected $casts = [
+        'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
+
+    protected $dates = ['deleted_at'];
 
     public function orderItems()
     {
@@ -17,5 +26,10 @@ class Order extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

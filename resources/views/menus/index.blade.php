@@ -135,12 +135,9 @@
                     </form>
 
                     <!-- Add Menu Button -->
-                    <a href="{{ route('menus.create') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Add Menu
-                    </a>
+                    <button onclick="toggleModal('createMenuModal')" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded hover:bg-primary-700 transition">
+                        + Tambah Menu
+                    </button>
                 </div>
 
                 <!-- Menu Table -->
@@ -152,47 +149,177 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Name</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @isset($menus)
-                                    @forelse($menus as $menu)
-                                    <tr class="hover:bg-gray-50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $loop->iteration }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $menu->name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Rp {{ number_format($menu->price, 0, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $menu->category->name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">
-                                            <div class="flex justify-end space-x-2">
-                                                <a href="{{ route('menus.edit', $menu->id) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors">
-                                                    Edit
-                                                </a>
-                                                <form action="{{ route('menus.destroy', $menu->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this menu?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                                                        Delete
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
-                                            No menus found. <a href="{{ route('menus.create') }}" class="text-primary-600 hover:text-primary-800">Create one now</a>
-                                        </td>
-                                    </tr>
-                                    @endforelse
-                                @endisset
+                                @forelse($menus as $menu)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $loop->iteration }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $menu->name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Rp {{ number_format($menu->price, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $menu->stock }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $menu->category->name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">
+                                        <div class="flex justify-end space-x-2">
+                                            <button onclick="openEditModal({{ $menu->id }}, '{{ $menu->name }}', {{ $menu->price }}, {{ $menu->stock }}, {{ $menu->category_id }})" class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors">
+                                                Edit
+                                            </button>
+                                            <form action="{{ route('menus.destroy', $menu->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this menu?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        No menus found.
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- Pagination - Only show if $menus is paginated -->
+                @if($menus instanceof \Illuminate\Pagination\LengthAwarePaginator && $menus->hasPages())
+                <div class="mt-6">
+                    {{ $menus->links() }}
+                </div>
+                @endif
             </main>
         </div>
     </div>
+
+    <!-- Create Menu Modal -->
+    <div id="createMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-lg font-semibold text-primary-600">Tambah Menu Baru</h3>
+                <button onclick="toggleModal('createMenuModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+            <form action="{{ route('menus.store') }}" method="POST">
+                @csrf
+                <div class="space-y-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Nama Menu</label>
+                        <input type="text" id="name" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="price" class="block text-sm font-medium text-gray-700">Harga</label>
+                        <input type="number" id="price" name="price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="stock" class="block text-sm font-medium text-gray-700">Stok</label>
+                        <input type="number" id="stock" name="stock" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required min="0">
+                    </div>
+                    <div>
+                        <label for="category_id" class="block text-sm font-medium text-gray-700">Kategori</label>
+                        <select id="category_id" name="category_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                            @foreach ($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex justify-end pt-4">
+                        <button type="button" onclick="toggleModal('createMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded mr-2 hover:bg-gray-300">Batal</button>
+                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Menu Modal -->
+    <div id="editMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-lg font-semibold text-primary-600">Edit Menu</h3>
+                <button onclick="toggleModal('editMenuModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+            <form id="editMenuForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="space-y-4">
+                    <div>
+                        <label for="editName" class="block text-sm font-medium text-gray-700">Nama Menu</label>
+                        <input type="text" id="editName" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="editPrice" class="block text-sm font-medium text-gray-700">Harga</label>
+                        <input type="number" id="editPrice" name="price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="editStock" class="block text-sm font-medium text-gray-700">Stok</label>
+                        <input type="number" id="editStock" name="stock" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required min="0">
+                    </div>
+                    <div>
+                        <label for="editCategory" class="block text-sm font-medium text-gray-700">Kategori</label>
+                        <select id="editCategory" name="category_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                            @foreach ($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex justify-end pt-4">
+                        <button type="button" onclick="toggleModal('editMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded mr-2 hover:bg-gray-300">Batal</button>
+                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Simpan Perubahan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Toggle modal visibility
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
+
+        // Open edit modal with menu data
+        function openEditModal(menuId, name, price, stock, categoryId) {
+            // Set form action
+            document.getElementById('editMenuForm').action = `/menus/${menuId}`;
+            
+            // Fill form fields
+            document.getElementById('editName').value = name;
+            document.getElementById('editPrice').value = price;
+            document.getElementById('editStock').value = stock;
+            
+            // Set selected category
+            const categorySelect = document.getElementById('editCategory');
+            for (let i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].value == categoryId) {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+            
+            // Show modal
+            toggleModal('editMenuModal');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const modals = document.querySelectorAll('[id$="Modal"]');
+            modals.forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        toggleModal(modal.id);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

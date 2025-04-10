@@ -18,8 +18,9 @@ class MenuController extends Controller
         }
 
         $menus = $query->get();
+        $categories = Category::all();
 
-        return view('menus.index', compact('menus'));
+        return view('menus.index', compact('menus', 'categories'));
     }
 
     public function create()

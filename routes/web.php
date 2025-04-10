@@ -42,25 +42,20 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('orders')->controller(OrderController::class)->group(function () {
         Route::get('/', 'index')->name('orders.index');
         Route::get('/{id}', 'show')->where('id', '[0-9]+')->name('orders.show');
-        Route::put('/{id}/cancel', 'cancel')->name('orders.cancel');
+        Route::put('/{id}/cancel', 'markCancel')->name('orders.cancel');
+        Route::put('/{id}/complete', 'markComplete')->name('orders.complete');
+        Route::post('/{id}/cancel', 'markCancel')->name('orders.markCancel');
+        Route::post('/{id}/complete', 'markComplete')->name('orders.markComplete');
+        Route::delete('/clear-all', 'clearAll')->name('orders.clearAll');
         Route::get('/export-excel', 'exportExcel')->name('orders.exportExcel');
         Route::get('/export-pdf', 'exportPdf')->name('orders.exportPdf');
+        Route::get('/order', [OrderController::class, 'index'])->name('order.index');
+        Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show');
+        Route::get('/order/{id}/print', [OrderController::class, 'print'])->name('order.print');
     });
 
     // Menus
     Route::resource('menus', MenuController::class);
-
-    // Sales
-    Route::prefix('sales')->controller(SaleController::class)->group(function () {
-        Route::get('/', 'index')->name('sales.index');
-        Route::get('/create', 'create')->name('sales.create');
-        Route::post('/', 'store')->name('sales.store');
-        Route::get('/{id}/edit', 'edit')->name('sales.edit');
-        Route::put('/{id}', 'update')->name('sales.update');
-        Route::delete('/{id}', 'destroy')->name('sales.destroy');
-        Route::get('/show/{id}', 'show')->name('sales.show');
-        Route::get('/receipt/{id}', 'receipt')->name('sales.receipt');
-    });
 
     // Payments
     Route::prefix('payments')->controller(PaymentController::class)->group(function () {
@@ -102,6 +97,22 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->group(function () {
     Route::get('/dashboard', [KasirController::class, 'index'])->name('kasir.dashboard');
     Route::get('/orders/new', [OrderController::class, 'create'])->name('orders.create');
     Route::post('/orders/store', [OrderController::class, 'store'])->name('orders.store');
+    Route::get('/orders/{id}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+    Route::get('/orders/{id}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+
+
+
+    // Sales (Penjualan)
+    Route::prefix('sales')->controller(SaleController::class)->group(function () {
+        Route::get('/', 'index')->name('sales.index');
+        Route::get('/create', 'create')->name('sales.create');
+        Route::post('/', 'store')->name('sales.store');
+        Route::get('/{id}/edit', 'edit')->name('sales.edit');
+        Route::put('/{id}', 'update')->name('sales.update');
+        Route::delete('/{id}', 'destroy')->name('sales.destroy');
+        Route::get('/show/{id}', 'show')->name('sales.show');
+        Route::get('/receipt/{id}', 'receipt')->name('sales.receipt');
+    });
 });
 
 // ==========================
