@@ -4,9 +4,37 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Category;
+use App\Exports\CategoriesExport;
+use App\Imports\CategoryImport;
+
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CategoryController extends Controller
 {
+    public function exportExcel()
+    {
+        return Excel::download(new CategoriesExport, 'categories.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        $categories = Category::all();
+        $pdf = PDF::loadView('categories.pdf', compact('categories'));
+        return $pdf->download('categories.pdf');
+    }
+
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        Excel::import(new CategoryImport, $request->file('file'));
+
+        return redirect()->route('categories.index')->with('success', 'Import berhasil!');
+    }
+
     public function index()
     {
         $categories = Category::all();

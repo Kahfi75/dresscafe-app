@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Menu;
 use App\Models\Category;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\MenuExport;
+use App\Imports\MenuImport;
 
 class MenuController extends Controller
 {
@@ -12,8 +16,8 @@ class MenuController extends Controller
     {
         $query = Menu::with('category');
 
-        // Jika ada input pencarian, filter berdasarkan nama menu
-        if ($request->has('search') && $request->search != '') {
+        // Filter pencarian nama menu
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
@@ -37,9 +41,9 @@ class MenuController extends Controller
             'category_id' => 'required|exists:categories,id',
         ]);
 
-        Menu::create($request->all());
+        Menu::create($request->only(['name', 'price', 'category_id']));
 
-        return redirect()->route('menus.index')->with('success', 'Menu added successfully!');
+        return redirect()->route('menus.index')->with('success', 'Menu berhasil ditambahkan!');
     }
 
     public function edit($id)
@@ -58,9 +62,9 @@ class MenuController extends Controller
         ]);
 
         $menu = Menu::findOrFail($id);
-        $menu->update($request->all());
+        $menu->update($request->only(['name', 'price', 'category_id']));
 
-        return redirect()->route('menus.index')->with('success', 'Menu updated successfully!');
+        return redirect()->route('menus.index')->with('success', 'Menu berhasil diperbarui!');
     }
 
     public function destroy($id)
@@ -68,6 +72,38 @@ class MenuController extends Controller
         $menu = Menu::findOrFail($id);
         $menu->delete();
 
-        return redirect()->route('menus.index')->with('success', 'Menu deleted successfully!');
+        return redirect()->route('menus.index')->with('success', 'Menu berhasil dihapus!');
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new MenuExport, 'menus.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        $menus = Menu::with('category')->get();
+        $pdf = Pdf::loadView('menus.pdf', compact('menus'));
+        return $pdf->download('menus.pdf');
+    }
+
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        try {
+            Excel::import(new MenuImport, $request->file('file'));
+            return redirect()->route('menus.index')->with('success', 'Import menu berhasil!');
+        } catch (\Exception $e) {
+            return redirect()->route('menus.index')->with('error', 'Import gagal: ' . $e->getMessage());
+        }
+    }
+
+    public function getMenuData()
+    {
+        $menus = Menu::all();
+        return response()->json($menus);
     }
 }

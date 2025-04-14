@@ -43,7 +43,7 @@
                 </div>
                 <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
                     <nav class="flex-1 space-y-1">
-                        <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 group transition-colors">
+                        <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 group transition-colors">
                             <svg class="w-5 h-5 mr-3 text-gray-500 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
@@ -149,6 +149,7 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Telepon</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Member</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
@@ -165,6 +166,13 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">{{ $customer->phone }}</div>
                                     </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($customer->is_member)
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Member #{{ $customer->member_number }}</span>
+                                        @else
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Non-Member</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">{{ $customer->address ?? '-' }}</div>
                                     </td>
@@ -175,7 +183,9 @@
                                                 '{{ $customer->name }}',
                                                 '{{ $customer->email }}',
                                                 '{{ $customer->phone }}',
-                                                '{{ $customer->address }}'
+                                                '{{ $customer->address }}',
+                                                '{{ $customer->is_member }}',
+                                                '{{ $customer->member_number }}'
                                             )" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors">
                                                 Edit
                                             </button>
@@ -191,7 +201,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center">
+                                    <td colspan="6" class="px-6 py-8 text-center">
                                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
@@ -243,6 +253,17 @@
                         <input type="text" name="phone" id="phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                     </div>
                     <div>
+                        <label for="is_member" class="block text-sm font-medium text-gray-700">Status Member</label>
+                        <select name="is_member" id="is_member" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="0">Bukan Member</option>
+                            <option value="1">Member</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="member_number" class="block text-sm font-medium text-gray-700">Nomor Member</label>
+                        <input type="text" name="member_number" id="member_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Auto atau isi manual">
+                    </div>
+                    <div>
                         <label for="address" class="block text-sm font-medium text-gray-700">Alamat (opsional)</label>
                         <textarea name="address" id="address" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"></textarea>
                     </div>
@@ -287,6 +308,17 @@
                         <input type="text" name="phone" id="edit-phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                     </div>
                     <div>
+                        <label for="edit-is_member" class="block text-sm font-medium text-gray-700">Status Member</label>
+                        <select name="is_member" id="edit-is_member" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="0">Bukan Member</option>
+                            <option value="1">Member</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit-member_number" class="block text-sm font-medium text-gray-700">Nomor Member</label>
+                        <input type="text" name="member_number" id="edit-member_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                    </div>
+                    <div>
                         <label for="edit-address" class="block text-sm font-medium text-gray-700">Alamat</label>
                         <textarea name="address" id="edit-address" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"></textarea>
                     </div>
@@ -315,12 +347,14 @@
             document.getElementById('createModal').classList.add('hidden');
         }
 
-        function openEditModal(id, name, email, phone, address) {
+        function openEditModal(id, name, email, phone, address, is_member, member_number) {
             document.getElementById('editForm').action = `/customers/${id}`;
             document.getElementById('edit-name').value = name;
             document.getElementById('edit-email').value = email;
             document.getElementById('edit-phone').value = phone;
             document.getElementById('edit-address').value = address;
+            document.getElementById('edit-is_member').value = is_member;
+            document.getElementById('edit-member_number').value = member_number;
             document.getElementById('editModal').classList.remove('hidden');
         }
 

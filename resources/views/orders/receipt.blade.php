@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Struk Pembelian</title>
@@ -11,19 +12,49 @@
             max-width: 300px;
             margin: auto;
         }
-        .text-center { text-align: center; }
-        .mb-2 { margin-bottom: 8px; }
-        .mb-1 { margin-bottom: 4px; }
-        .border-top { border-top: 1px dashed #000; margin: 10px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 2px 0; }
-        .right { text-align: right; }
-        .bold { font-weight: bold; }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-2 {
+            margin-bottom: 8px;
+        }
+
+        .mb-1 {
+            margin-bottom: 4px;
+        }
+
+        .border-top {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 2px 0;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
         @media print {
-            body { margin: 0; }
+            body {
+                margin: 0;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="text-center mb-2">
         <h2 class="mb-1">DRESSCAFE</h2>
@@ -31,7 +62,8 @@
         <p class="mb-1">Telp: 0812-3456-7890</p>
         <div class="border-top"></div>
         <p class="mb-1">Struk Pembelian</p>
-        <p>{{ $order->created_at->format('d M Y H:i') }}</p>
+        <p>{{ $order->created_at ? $order->created_at->format('d M Y H:i') : '-' }}</p>
+
     </div>
 
     <p class="mb-1">Kasir: {{ $order->user->name ?? '-' }}</p>
@@ -48,12 +80,12 @@
         </thead>
         <tbody>
             @foreach ($order->orderItems as $item)
-                <tr>
-                    <td>{{ $item->menu->name }}</td>
-                    <td class="right">{{ $item->quantity }}</td>
-                    <td class="right">Rp{{ number_format($item->menu->price, 0, ',', '.') }}</td>
-                    <td class="right">Rp{{ number_format($item->subtotal, 0, ',', '.') }}</td>
-                </tr>
+            <tr>
+                <td>{{ $item->menu->name }}</td>
+                <td class="right">{{ $item->quantity }}</td>
+                <td class="right">Rp{{ number_format($item->menu->price, 0, ',', '.') }}</td>
+                <td class="right">Rp{{ number_format($item->subtotal, 0, ',', '.') }}</td>
+            </tr>
             @endforeach
         </tbody>
     </table>
@@ -80,4 +112,5 @@
         window.print();
     </script>
 </body>
+
 </html>

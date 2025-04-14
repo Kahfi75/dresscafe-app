@@ -13,7 +13,16 @@ class Customer extends Model
 
     protected $table = 'customers';
     protected $primaryKey = 'id';
-    protected $fillable = ['name', 'email', 'phone'];
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'address',
+        'member_number',
+        'is_member',
+        'points'
+    ];
+
 
     protected $casts = [
         'created_at' => 'datetime',
@@ -24,5 +33,6 @@ class Customer extends Model
     public function orders()
     {
         return $this->hasMany(Order::class, 'customer_id')->onDelete('cascade');
+        return $this->hasMany(Order::class);
     }
 }

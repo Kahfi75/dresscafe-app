@@ -15,17 +15,21 @@ class SaleController extends Controller
     {
         $sales = Sale::with('customer')->latest()->paginate(10);
         $customers = Customer::all();
-        $products = Menu::all();
+        $menus = Menu::all();
 
-        return view('sales.index', compact('sales', 'customers', 'products'));
+        return view('sales.index', compact(
+            'sales',
+            'customers',
+            'menus'
+        ));
     }
 
     public function create()
     {
         $customers = Customer::all();
-        $products = Menu::all();
+        $menus = Menu::all();
 
-        return view('sales.create', compact('customers', 'products'));
+        return view('sales.create', compact('customers', 'menus'));
     }
 
     public function store(Request $request)
@@ -45,40 +49,36 @@ class SaleController extends Controller
         try {
             $total_price = 0;
             foreach ($request->menu_id as $index => $menuId) {
-                $product = Menu::findOrFail($menuId);
-                $total_price += $product->price * $request->quantity[$index];
+                $menu = Menu::findOrFail($menuId);
+                $total_price += $menu->price * $request->quantity[$index];
             }
-
-            $paid_amount = $request->paid_amount;
-            $change_amount = $paid_amount - $total_price;
-            $payment_status = $paid_amount >= $total_price ? 'Lunas' : 'Tertunda';
 
             $sale = Sale::create([
                 'user_id' => $request->user_id,
                 'customer_id' => $request->customer_id,
                 'tanggal' => now(),
                 'total_price' => $total_price,
-                'paid_amount' => $paid_amount,
-                'change_amount' => $change_amount,
+                'paid_amount' => $request->paid_amount,
+                'change_amount' => $request->paid_amount - $total_price,
                 'payment_method' => $request->payment_method,
-                'payment_status' => $payment_status,
+                'payment_status' => $request->paid_amount >= $total_price ? 'Lunas' : 'Tertunda',
             ]);
 
             foreach ($request->menu_id as $index => $menuId) {
-                $product = Menu::findOrFail($menuId);
+                $menu = Menu::findOrFail($menuId);
                 $quantity = $request->quantity[$index];
 
-                if ($product->stock < $quantity) {
-                    throw new \Exception("Stok produk '{$product->name}' tidak mencukupi.");
+                if ($menu->stock < $quantity) {
+                    throw new \Exception("Stok menu '{$menu->name}' tidak mencukupi.");
                 }
 
-                $product->decrement('stock', $quantity);
+                $menu->decrement('stock', $quantity);
 
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'menu_id' => $menuId,
                     'quantity' => $quantity,
-                    'price' => $product->price,
+                    'price' => $menu->price,
                 ]);
             }
 
@@ -94,9 +94,9 @@ class SaleController extends Controller
     {
         $sale = Sale::with('saleDetails')->findOrFail($id);
         $customers = Customer::all();
-        $products = Menu::all();
+        $menus = Menu::all();
 
-        return view('sales.edit', compact('sale', 'customers', 'products'));
+        return view('sales.edit', compact('sale', 'customers', 'menus'));
     }
 
     public function update(Request $request, $id)
@@ -117,9 +117,9 @@ class SaleController extends Controller
 
             // Kembalikan stok lama
             foreach ($sale->saleDetails as $detail) {
-                $product = Menu::find($detail->menu_id);
-                if ($product) {
-                    $product->increment('stock', $detail->quantity);
+                $menu = Menu::find($detail->menu_id);
+                if ($menu) {
+                    $menu->increment('stock', $detail->quantity);
                 }
             }
 
@@ -127,38 +127,34 @@ class SaleController extends Controller
 
             $total_price = 0;
             foreach ($request->menu_id as $index => $menuId) {
-                $product = Menu::findOrFail($menuId);
-                $total_price += $product->price * $request->quantity[$index];
+                $menu = Menu::findOrFail($menuId);
+                $total_price += $menu->price * $request->quantity[$index];
             }
-
-            $paid_amount = $request->paid_amount;
-            $change_amount = $paid_amount - $total_price;
-            $payment_status = $paid_amount >= $total_price ? 'Lunas' : 'Tertunda';
 
             $sale->update([
                 'customer_id' => $request->customer_id,
                 'total_price' => $total_price,
-                'paid_amount' => $paid_amount,
-                'change_amount' => $change_amount,
+                'paid_amount' => $request->paid_amount,
+                'change_amount' => $request->paid_amount - $total_price,
                 'payment_method' => $request->payment_method,
-                'payment_status' => $payment_status,
+                'payment_status' => $request->paid_amount >= $total_price ? 'Lunas' : 'Tertunda',
             ]);
 
             foreach ($request->menu_id as $index => $menuId) {
-                $product = Menu::findOrFail($menuId);
+                $menu = Menu::findOrFail($menuId);
                 $quantity = $request->quantity[$index];
 
-                if ($product->stock < $quantity) {
-                    throw new \Exception("Stok produk '{$product->name}' tidak mencukupi.");
+                if ($menu->stock < $quantity) {
+                    throw new \Exception("Stok menu '{$menu->name}' tidak mencukupi.");
                 }
 
-                $product->decrement('stock', $quantity);
+                $menu->decrement('stock', $quantity);
 
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'menu_id' => $menuId,
                     'quantity' => $quantity,
-                    'price' => $product->price,
+                    'price' => $menu->price,
                 ]);
             }
 
@@ -177,9 +173,9 @@ class SaleController extends Controller
             $sale = Sale::with('saleDetails')->findOrFail($id);
 
             foreach ($sale->saleDetails as $detail) {
-                $product = Menu::find($detail->menu_id);
-                if ($product) {
-                    $product->increment('stock', $detail->quantity);
+                $menu = Menu::find($detail->menu_id);
+                if ($menu) {
+                    $menu->increment('stock', $detail->quantity);
                 }
             }
 

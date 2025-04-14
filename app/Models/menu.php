@@ -10,9 +10,13 @@ class Menu extends Model
     use HasFactory;
     protected $fillable = ['name', 'price', 'stock', 'category_id'];
     protected $table = 'menu';
-    
+
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+    public function pembelianDetails()
+    {
+        return $this->hasMany(PembelianDetail::class);
     }
 }

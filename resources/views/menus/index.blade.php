@@ -44,7 +44,7 @@
                 </div>
                 <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
                     <nav class="flex-1 space-y-1">
-                        <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 group transition-colors">
+                        <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 group transition-colors">
                             <svg class="w-5 h-5 mr-3 text-gray-500 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
@@ -123,7 +123,7 @@
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
                     <!-- Search Form -->
                     <form action="{{ route('menus.index') }}" method="GET" class="flex-1">
-                        <div class="relative rounded-md shadow-sm">
+                        <div class="relative rounded-md shadow-sm max-w-md">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -134,10 +134,55 @@
                         </div>
                     </form>
 
-                    <!-- Add Menu Button -->
-                    <button onclick="toggleModal('createMenuModal')" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded hover:bg-primary-700 transition">
-                        + Tambah Menu
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <!-- Add Menu Button -->
+                        <button onclick="toggleModal('createMenuModal')" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Tambah Menu
+                        </button>
+
+                        <!-- Export/Import Buttons -->
+                        <div class="flex gap-3">
+                            <!-- EXPORT EXCEL -->
+                            <form action="{{ route('export.data', ['table' => 'menus']) }}" method="GET" class="flex-1">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition shadow-sm w-full">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Export Excel
+                                </button>
+                            </form>
+
+                            <!-- EXPORT PDF -->
+                            <form action="{{ route('export.pdf', ['table' => 'menus']) }}" method="GET" class="flex-1">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition shadow-sm w-full">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Export PDF
+                                </button>
+                            </form>
+
+                            <!-- IMPORT -->
+                            <form action="{{ route('import.data') }}" method="POST" enctype="multipart/form-data" class="flex-1">
+                                @csrf
+                                <input type="hidden" name="table" value="menus">
+                                <label class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition shadow-sm cursor-pointer w-full">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    Import Excel
+                                    <input type="file" name="file" class="hidden" onchange="this.form.submit()">
+                                </label>
+                            </form>
+                        </div>
+                    </div>
+
+
+
+
                 </div>
 
                 <!-- Menu Table -->
@@ -189,10 +234,15 @@
                     </div>
                 </div>
 
-                <!-- Pagination - Only show if $menus is paginated -->
+                <!-- Pagination -->
                 @if($menus instanceof \Illuminate\Pagination\LengthAwarePaginator && $menus->hasPages())
-                <div class="mt-6">
-                    {{ $menus->links() }}
+                <div class="mt-6 flex items-center justify-between">
+                    <div class="text-sm text-gray-500">
+                        Showing {{ $menus->firstItem() }} to {{ $menus->lastItem() }} of {{ $menus->total() }} results
+                    </div>
+                    <div class="flex space-x-2">
+                        {{ $menus->links() }}
+                    </div>
                 </div>
                 @endif
             </main>
@@ -200,38 +250,58 @@
     </div>
 
     <!-- Create Menu Modal -->
-    <div id="createMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6">
+    <div id="createMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 sm:mx-auto p-6 transform transition-all duration-300">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
                 <h3 class="text-lg font-semibold text-primary-600">Tambah Menu Baru</h3>
-                <button onclick="toggleModal('createMenuModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
+                <button onclick="toggleModal('createMenuModal')" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
             <form action="{{ route('menus.store') }}" method="POST">
                 @csrf
                 <div class="space-y-4">
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Nama Menu</label>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama Menu</label>
                         <input type="text" id="name" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                        @error('name')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
-                        <label for="price" class="block text-sm font-medium text-gray-700">Harga</label>
-                        <input type="number" id="price" name="price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                        <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                        <input type="number" id="price" name="price" min="0" step="100" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                        @error('price')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
-                        <label for="stock" class="block text-sm font-medium text-gray-700">Stok</label>
-                        <input type="number" id="stock" name="stock" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required min="0">
+                        <label for="stock" class="block text-sm font-medium text-gray-700 mb-1">Stok</label>
+                        <input type="number" id="stock" name="stock" min="0" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                        @error('stock')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
-                        <label for="category_id" class="block text-sm font-medium text-gray-700">Kategori</label>
+                        <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                         <select id="category_id" name="category_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                             @foreach ($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
                             @endforeach
                         </select>
+                        @error('category_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
-                    <div class="flex justify-end pt-4">
-                        <button type="button" onclick="toggleModal('createMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded mr-2 hover:bg-gray-300">Batal</button>
-                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Simpan</button>
+                    <div class="flex justify-end pt-4 space-x-3">
+                        <button type="button" onclick="toggleModal('createMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors shadow-sm">
+                            Simpan
+                        </button>
                     </div>
                 </div>
             </form>
@@ -239,39 +309,47 @@
     </div>
 
     <!-- Edit Menu Modal -->
-    <div id="editMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6">
+    <div id="editMenuModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 sm:mx-auto p-6 transform transition-all duration-300">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
                 <h3 class="text-lg font-semibold text-primary-600">Edit Menu</h3>
-                <button onclick="toggleModal('editMenuModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
+                <button onclick="toggleModal('editMenuModal')" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
             <form id="editMenuForm" method="POST">
                 @csrf
                 @method('PUT')
                 <div class="space-y-4">
                     <div>
-                        <label for="editName" class="block text-sm font-medium text-gray-700">Nama Menu</label>
+                        <label for="editName" class="block text-sm font-medium text-gray-700 mb-1">Nama Menu</label>
                         <input type="text" id="editName" name="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                     </div>
                     <div>
-                        <label for="editPrice" class="block text-sm font-medium text-gray-700">Harga</label>
-                        <input type="number" id="editPrice" name="price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
+                        <label for="editPrice" class="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                        <input type="number" id="editPrice" name="price" min="0" step="100" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                     </div>
                     <div>
-                        <label for="editStock" class="block text-sm font-medium text-gray-700">Stok</label>
-                        <input type="number" id="editStock" name="stock" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required min="0">
+                        <label for="editStock" class="block text-sm font-medium text-gray-700 mb-1">Stok</label>
+                        <input type="number" id="editStock" name="stock" min="0" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                     </div>
                     <div>
-                        <label for="editCategory" class="block text-sm font-medium text-gray-700">Kategori</label>
+                        <label for="editCategory" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                         <select id="editCategory" name="category_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" required>
                             @foreach ($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex justify-end pt-4">
-                        <button type="button" onclick="toggleModal('editMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded mr-2 hover:bg-gray-300">Batal</button>
-                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Simpan Perubahan</button>
+                    <div class="flex justify-end pt-4 space-x-3">
+                        <button type="button" onclick="toggleModal('editMenuModal')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors shadow-sm">
+                            Simpan Perubahan
+                        </button>
                     </div>
                 </div>
             </form>
@@ -279,23 +357,30 @@
     </div>
 
     <script>
-        // Toggle modal visibility
+        // Toggle modal visibility with animation
         function toggleModal(modalId) {
             const modal = document.getElementById(modalId);
             modal.classList.toggle('hidden');
             modal.classList.toggle('flex');
+
+            // Add/remove overflow hidden to body
+            if (!modal.classList.contains('hidden')) {
+                document.body.classList.add('overflow-hidden');
+            } else {
+                document.body.classList.remove('overflow-hidden');
+            }
         }
 
         // Open edit modal with menu data
         function openEditModal(menuId, name, price, stock, categoryId) {
             // Set form action
             document.getElementById('editMenuForm').action = `/menus/${menuId}`;
-            
+
             // Fill form fields
             document.getElementById('editName').value = name;
             document.getElementById('editPrice').value = price;
             document.getElementById('editStock').value = stock;
-            
+
             // Set selected category
             const categorySelect = document.getElementById('editCategory');
             for (let i = 0; i < categorySelect.options.length; i++) {
@@ -304,7 +389,7 @@
                     break;
                 }
             }
-            
+
             // Show modal
             toggleModal('editMenuModal');
         }
@@ -319,7 +404,19 @@
                     }
                 });
             });
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    modals.forEach(modal => {
+                        if (!modal.classList.contains('hidden')) {
+                            toggleModal(modal.id);
+                        }
+                    });
+                }
+            });
         });
     </script>
 </body>
+
 </html>

@@ -21,13 +21,22 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'nullable|email|max:150|unique:customers,email',
-            'phone'  => 'required|string|max:20|unique:customers,phone',
-            'address'=> 'nullable|string',
+            'name'          => 'required|string|max:255',
+            'email'         => 'nullable|email|max:150|unique:customers,email',
+            'phone'         => 'required|string|max:20|unique:customers,phone',
+            'address'       => 'nullable|string',
+            'is_member'     => 'nullable|boolean',
+            'member_number' => 'nullable|string|unique:customers,member_number',
         ]);
 
-        Customer::create($request->all());
+        $data = $request->all();
+        $data['is_member'] = $request->has('is_member') ? true : false;
+
+        if ($data['is_member'] && empty($data['member_number'])) {
+            $data['member_number'] = 'MBR' . strtoupper(uniqid());
+        }
+
+        Customer::create($data);
 
         return redirect()->route('customers.index')->with('success', 'Customer berhasil ditambahkan.');
     }
@@ -40,13 +49,22 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'nullable|email|max:150|unique:customers,email,' . $customer->id,
-            'phone'  => 'required|string|max:20|unique:customers,phone,' . $customer->id,
-            'address'=> 'nullable|string',
+            'name'          => 'required|string|max:255',
+            'email'         => 'nullable|email|max:150|unique:customers,email,' . $customer->id,
+            'phone'         => 'required|string|max:20|unique:customers,phone,' . $customer->id,
+            'address'       => 'nullable|string',
+            'is_member'     => 'nullable|boolean',
+            'member_number' => 'nullable|string|unique:customers,member_number,' . $customer->id,
         ]);
 
-        $customer->update($request->all());
+        $data = $request->all();
+        $data['is_member'] = $request->has('is_member') ? true : false;
+
+        if ($data['is_member'] && empty($data['member_number'])) {
+            $data['member_number'] = 'MBR' . strtoupper(uniqid());
+        }
+
+        $customer->update($data);
 
         return redirect()->route('customers.index')->with('success', 'Customer berhasil diperbarui.');
     }

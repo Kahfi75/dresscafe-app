@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Menu;
+use App\Models\Customer;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -18,21 +21,45 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $orders = Order::with('orderItems.menu')
-            ->when($request->status, fn($query) => $query->where('status', $request->status))
+        $status = $request->input('status');
+
+        $orders = Order::with(['orderItems.menu', 'customer', 'user'])  // Pastikan memuat 'customer' dan 'user'
+            ->when($status, fn($query) => $query->where('status', $status))
+            ->when($search, function ($query) use ($search) {
+                $query->where('customer_name', 'like', "%{$search}%")
+                    ->orWhere('id', $search);
+            })
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate($request->input('per_page', 10));
 
-        $customers = \App\Models\Customer::all();
-        $menus = Menu::all();
+        $pendingCount = Order::where('status', 'Pending')->count();
+        $completedCount = Order::where('status', 'Completed')->count();
+        $pendingKitchenOrders = $pendingCount;
 
-        return view('orders.index', compact('orders', 'customers', 'menus'));
+        $kitchenNotifications = Notification::where('is_read', false)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        Log::info('User viewed orders index', ['user_id' => Auth::id()]);
+
+        return view('orders.index', [
+            'orders' => $orders,
+            'pendingCount' => $pendingCount,
+            'completedCount' => $completedCount,
+            'pendingKitchenOrders' => $pendingKitchenOrders,
+            'kitchenNotifications' => $kitchenNotifications,
+            'customers' => Customer::all(),
+            'menus' => Menu::all(),
+        ]);
     }
 
     public function create()
     {
         $menus = Menu::all();
-        $customers = \App\Models\Customer::all();
+        $customers = Customer::all();
+
+        Log::info('User accessed order creation form', ['user_id' => Auth::id()]);
         return view('orders.create', compact('menus', 'customers'));
     }
 
@@ -68,12 +95,14 @@ class OrderController extends Controller
             ]);
         }
 
+        Log::info('New order created', ['order_id' => $order->id, 'user_id' => Auth::id()]);
         return redirect()->route('orders.index')->with('success', 'Order successfully created!');
     }
 
     public function show($id)
     {
         $order = Order::with('orderItems.menu')->findOrFail($id);
+        Log::info('Viewing order detail', ['order_id' => $id, 'user_id' => Auth::id()]);
         return view('orders.show', compact('order'));
     }
 
@@ -81,6 +110,7 @@ class OrderController extends Controller
     {
         $order = Order::with('orderItems')->findOrFail($id);
         $menu = Menu::all();
+        Log::info('Editing order', ['order_id' => $id, 'user_id' => Auth::id()]);
         return view('orders.edit', compact('order', 'menu'));
     }
 
@@ -88,7 +118,7 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
-            'status' => 'required|in:Pending,Completed,Canceled',
+            'status' => 'required|in:Pending,Completed,Cancelled',
             'menu' => 'required|array|min:1',
             'menu.*.menu_id' => 'required|exists:menu,id',
             'menu.*.quantity' => 'required|integer|min:1',
@@ -118,6 +148,7 @@ class OrderController extends Controller
 
         $order->update(['total_price' => $total_price]);
 
+        Log::info('Order updated', ['order_id' => $id, 'user_id' => Auth::id()]);
         return redirect()->route('orders.index')->with('success', 'Order successfully updated!');
     }
 
@@ -127,6 +158,7 @@ class OrderController extends Controller
         $order->orderItems()->delete();
         $order->delete();
 
+        Log::warning('Order deleted', ['order_id' => $id, 'user_id' => Auth::id()]);
         return redirect()->route('orders.index')->with('success', 'Order successfully deleted!');
     }
 
@@ -135,14 +167,22 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         if ($order->status !== 'Completed') {
-            $order->status = 'Completed';
-            $order->completed_at = now();
-            $order->save();
+            $order->update([
+                'status' => 'Completed',
+                'completed_at' => now()
+            ]);
 
-            return redirect()->back()->with('success', 'Order marked as completed successfully!');
+            Notification::create([
+                'order_id' => $order->id,
+                'message' => 'Order #' . $order->id . ' marked as completed',
+            ]);
+
+            Log::info('Order marked as completed', ['order_id' => $id, 'user_id' => Auth::id()]);
+            return back()->with('success', 'Order marked as completed successfully!');
         }
 
-        return redirect()->back()->with('info', 'Order is already completed');
+        Log::info('Attempt to re-complete an already completed order', ['order_id' => $id]);
+        return back()->with('info', 'Order is already completed');
     }
 
     public function markCancel($id)
@@ -150,14 +190,22 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         if ($order->status === 'Pending') {
-            $order->status = 'Cancelled';
-            $order->cancelled_at = now();
-            $order->save();
+            $order->update([
+                'status' => 'Cancelled',
+                'cancelled_at' => now()
+            ]);
 
-            return redirect()->back()->with('success', 'Order has been cancelled successfully!');
+            Notification::create([
+                'order_id' => $order->id,
+                'message' => 'Order #' . $order->id . ' was cancelled',
+            ]);
+
+            Log::info('Order cancelled', ['order_id' => $id, 'user_id' => Auth::id()]);
+            return back()->with('success', 'Order has been cancelled successfully!');
         }
 
-        return redirect()->back()->with('error', 'Only pending orders can be cancelled');
+        Log::warning('Invalid cancel attempt', ['order_id' => $id]);
+        return back()->with('error', 'Only pending orders can be cancelled');
     }
 
     public function updateStatus(Request $request, $id)
@@ -169,36 +217,49 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
         $newStatus = $request->status;
 
-        if ($order->status === 'Completed' && $newStatus !== 'Completed') {
-            return redirect()->back()->with('error', 'Completed orders cannot be changed');
-        }
-
-        if ($order->status === 'Cancelled' && $newStatus !== 'Cancelled') {
-            return redirect()->back()->with('error', 'Cancelled orders cannot be changed');
+        if (($order->status === 'Completed' && $newStatus !== 'Completed') ||
+            ($order->status === 'Cancelled' && $newStatus !== 'Cancelled')
+        ) {
+            Log::error('Attempt to change finalized order status', ['order_id' => $id]);
+            return back()->with('error', 'Finalized orders cannot be changed');
         }
 
         $order->status = $newStatus;
-
         if ($newStatus === 'Completed') {
             $order->completed_at = now();
         } elseif ($newStatus === 'Cancelled') {
             $order->cancelled_at = now();
         }
-
         $order->save();
 
-        return redirect()->back()->with('success', 'Order status updated successfully!');
+        Log::info('Order status updated', ['order_id' => $id, 'new_status' => $newStatus]);
+        return back()->with('success', 'Order status updated successfully!');
     }
 
     public function clearAll()
     {
-        Order::whereIn('status', ['completed', 'cancelled'])->delete();
-        return redirect()->route('orders.index')->with('success', 'All applicable orders have been soft deleted.');
+        $deleted = Order::whereIn('status', ['Completed', 'Cancelled'])->delete();
+        Log::warning('Bulk delete orders', ['deleted_count' => $deleted]);
+        return redirect()->route('orders.index')->with('success', 'All applicable orders have been deleted.');
     }
 
+    // OrderController.php
     public function receipt($id)
     {
-        $order = Order::with(['orderItems.menu', 'user'])->findOrFail($id);
+        $order = Order::with(['orderItems.menu', 'user', 'customer'])->findOrFail($id);  // Memuat 'user' dan 'customer'
+        Log::info('Viewing receipt', ['order_id' => $id, 'user_id' => Auth::id()]);
         return view('orders.receipt', compact('order'));
+    }
+
+
+    public function printReceipt(Order $order)
+    {
+        return view('orders.receipt', compact('order'));
+    }
+
+    public function markNotificationsRead()
+    {
+        Notification::where('is_read', false)->update(['is_read' => true]);
+        return response()->json(['success' => true]);
     }
 }

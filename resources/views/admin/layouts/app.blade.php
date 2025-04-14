@@ -117,8 +117,9 @@
                 sidebar.style.display = 'block';
             } else {
                 sidebar.style.display = 'none';
-            }
+            }   
         }
     </script>
+    @stack('scripts')
 </body>
 </html>
